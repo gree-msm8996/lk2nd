@@ -1,0 +1,57 @@
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// Gree G0245D (格力手机·色界) — MSM8996 v3.0 + PM8994 + PMI8994.
+//
+// IDs — verified against runtime SMEM (lk2nd getvar variant = "MTP eMMC",
+// i.e. hw_platform = 8) and the bootloader DT matcher behaviour:
+//   qcom,msm-id   = <0xf6 0x30000>  (MSM8996, soc v3.0; 0x30001 kept as
+//                                    best-match fallback for v3.1)
+//   qcom,board-id = <0x08 0x00>     (MTP, subtype 0 → default match)
+//   qcom,pmic-id  = <0x20009 0x10013 0x00 0x00>  (PM8994 + PMI8994)
+//
+// History of wrong IDs (do not reuse):
+//   - board-id <0x03 0x00> copied from stock dtb_44: rejected by the DT
+//     matcher (variant 3 != hw_platform 8) → fallback to the oneplus3 DTB
+//     → wrong device model ("OnePlus 3") and wrong keymap.
+//   - pmic-id <0x20009 0x2000a> (PMI8996) from dtb_44: also rejected →
+//     no DTB matches → aboot falls to stock fastboot. The device actually
+//     carries PMI8994, proven by the oneplus3 DTB (pmic-id 0x20009 0x10013)
+//     matching at runtime.
+//
+// oneplus3/oneplus3t were removed from rules.mk ADTBS: they also use board
+// variant 8 and would compete with this DTB in the matcher.
+
+#include <skeleton64.dtsi>
+#include <lk2nd.dtsi>
+
+/ {
+	qcom,msm-id =
+		<QCOM_ID_MSM8996 0x30000>,
+		<QCOM_ID_MSM8996 0x30001>;
+	qcom,board-id = <8 0>;
+	qcom,pmic-id = <0x20009 0x10013 0x00 0x00>;
+};
+
+&lk2nd {
+	model = "Gree G0245D";
+	compatible = "gree,g0245d";
+
+	// Keys from stock board.dtb gpio_keys node:
+	//   vol_up     = PM8994 GPIO 2, active low, KEY_VOLUMEUP (0x73)
+	//   key_gree   = PM8994 GPIO 4, active low (KEY_F1 — not polled by lk2nd)
+	//   key_home   = PM8994 GPIO 5, active low, KEY_HOME (0x66)
+	// No internal pull in stock (mode=0, pull=0), board has external pull.
+	gpio-keys {
+		compatible = "gpio-keys";
+
+		volume-up {
+			lk2nd,code = <KEY_VOLUMEUP>;
+			gpios = <&pmic 2 GPIO_ACTIVE_LOW>;
+		};
+
+		home {
+			lk2nd,code = <KEY_HOME>;
+			gpios = <&pmic 5 GPIO_ACTIVE_LOW>;
+		};
+	};
+};
